@@ -15,6 +15,7 @@ export class Wallet {
             typeof privateKeyOrSigner === 'string'
                 ? new PKWallet(privateKeyOrSigner, this.provider)
                 : privateKeyOrSigner
+        console.log('signer', this.signer.address)
     }
 
     public static async fromAddress(address: string, provider: JsonRpcProvider): Promise<Wallet> {

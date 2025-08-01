@@ -22,6 +22,8 @@ export class Resolver {
         const {args, trait} = takerTraits.encode()
         const immutables = order.toSrcImmutables(chainId, new Sdk.Address(this.srcAddress), amount, hashLock)
 
+        console.log('calling deploySrc on address ' , this.srcAddress)
+
         return {
             to: this.srcAddress,
             data: this.iface.encodeFunctionData('deploySrc', [

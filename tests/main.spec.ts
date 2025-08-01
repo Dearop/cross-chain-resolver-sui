@@ -174,7 +174,7 @@ describe('Resolving example', () => {
             const signature = await srcChainUser.signOrder(srcChainId, order)
             const orderHash = order.getOrderHash(srcChainId)
             // Resolver fills order
-            const resolverContract = new Resolver(src.resolver, src.resolver)
+            const resolverContract = new Resolver(config.chain.source.resolver, config.chain.source.resolver)
 
             console.log(`[${srcChainId}]`, `Filling order ${orderHash}`)
             
@@ -316,7 +316,7 @@ describe('Resolving example', () => {
             const signature = await srcChainUser.signOrder(srcChainId, order)
             const orderHash = order.getOrderHash(srcChainId)
             // Resolver fills order
-            const resolverContract = new Resolver(src.resolver, src.resolver)
+            const resolverContract = new Resolver(config.chain.source.resolver, config.chain.source.resolver)
 
             console.log(`[${srcChainId}]`, `Filling order ${orderHash}`)
 
@@ -468,7 +468,7 @@ describe('Resolving example', () => {
             const signature = await srcChainUser.signOrder(srcChainId, order)
             const orderHash = order.getOrderHash(srcChainId)
             // Resolver fills order
-            const resolverContract = new Resolver(src.resolver, src.resolver)
+            const resolverContract = new Resolver(config.chain.source.resolver, config.chain.source.resolver)
 
             console.log(`[${srcChainId}]`, `Filling order ${orderHash}`)
 
@@ -619,7 +619,7 @@ describe('Resolving example', () => {
             const signature = await srcChainUser.signOrder(srcChainId, order)
             const orderHash = order.getOrderHash(srcChainId)
             // Resolver fills order
-            const resolverContract = new Resolver(src.resolver, src.resolver)
+            const resolverContract = new Resolver(config.chain.source.resolver, config.chain.source.resolver)
 
             console.log(`[${srcChainId}]`, `Filling order ${orderHash}`)
             const fillAmount = order.makingAmount

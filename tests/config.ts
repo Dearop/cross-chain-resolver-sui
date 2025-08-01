@@ -25,6 +25,11 @@ export const config = {
             limitOrderProtocol: '0x88B25C9b2209113b9705B31fbfdd298c1f9ED9ec',
             wrappedNative: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
             ownerPrivateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+            resolver : '0xfd1E34f7859FB8b758BcE4ba4fbf1891664960bE',
+            escrowFactory : '0x1948eFaf98abF2C7Df95e7Df4A1618F8F202D28a',
+            escrowSrc : '0x6B17E6fDdc8752919aF841E852fcB1A31F59Fbe9',
+            escrowDst : '0x6D124e34Edc81216F60b710C87F9b1cF138679Ad',
+            lop : '0xd896FD11857400DDfD92A0824f6108e875670f3f',
             tokens: {
                 USDC: {
                     address: '0xB718FF84779B917B5955a333ae8A1ff431687A7d',

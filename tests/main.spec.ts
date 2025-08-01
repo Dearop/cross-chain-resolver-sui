@@ -177,20 +177,23 @@ describe('Resolving example', () => {
             const resolverContract = new Resolver(src.resolver, src.resolver)
 
             console.log(`[${srcChainId}]`, `Filling order ${orderHash}`)
-
+            
             const fillAmount = order.makingAmount
-            const {txHash: orderFillHash, blockHash: srcDeployBlock} = await srcChainResolver.send(
-                resolverContract.deploySrc(
-                    srcChainId,
-                    order,
-                    signature,
-                    Sdk.TakerTraits.default()
-                        .setExtension(order.extension)
-                        .setAmountMode(Sdk.AmountMode.maker)
-                        .setAmountThreshold(order.takingAmount),
-                    fillAmount
-                )
+            const resolverContractTx = resolverContract.deploySrc(
+                srcChainId,
+                order,
+                signature,
+                Sdk.TakerTraits.default()
+                    .setExtension(order.extension)
+                    .setAmountMode(Sdk.AmountMode.maker)
+                    .setAmountThreshold(order.takingAmount),
+                fillAmount
             )
+            console.log('resolverContractTx', resolverContractTx)
+            const {txHash: orderFillHash, blockHash: srcDeployBlock} = await srcChainResolver.send(
+                resolverContractTx
+            )
+
 
             console.log(`[${srcChainId}]`, `Order ${orderHash} filled for ${fillAmount} in tx ${orderFillHash}`)
 
@@ -619,21 +622,22 @@ describe('Resolving example', () => {
             const resolverContract = new Resolver(src.resolver, src.resolver)
 
             console.log(`[${srcChainId}]`, `Filling order ${orderHash}`)
-
             const fillAmount = order.makingAmount
-            const {txHash: orderFillHash, blockHash: srcDeployBlock} = await srcChainResolver.send(
-                resolverContract.deploySrc(
-                    srcChainId,
-                    order,
-                    signature,
-                    Sdk.TakerTraits.default()
-                        .setExtension(order.extension)
-                        .setAmountMode(Sdk.AmountMode.maker)
-                        .setAmountThreshold(order.takingAmount),
-                    fillAmount
-                )
+            const resolverContractTx = resolverContract.deploySrc(
+                srcChainId,
+                order,
+                signature,
+                Sdk.TakerTraits.default()
+                    .setExtension(order.extension)
+                    .setAmountMode(Sdk.AmountMode.maker)
+                    .setAmountThreshold(order.takingAmount),
+                fillAmount
             )
-
+            console.log('resolverContractTx', resolverContractTx)
+            const {txHash: orderFillHash, blockHash: srcDeployBlock} = await srcChainResolver.send(
+                resolverContractTx
+            )
+                        
             console.log(`[${srcChainId}]`, `Order ${orderHash} filled for ${fillAmount} in tx ${orderFillHash}`)
 
             const srcEscrowEvent = await srcFactory.getSrcDeployEvent(srcDeployBlock)

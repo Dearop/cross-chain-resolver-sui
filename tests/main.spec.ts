@@ -26,7 +26,7 @@ import resolverContract from '../dist/contracts/Resolver.sol/Resolver.json'
 
 const {Address} = Sdk
 
-jest.setTimeout(1000 * 60)
+jest.setTimeout(1000 * 60 * 10) // 10 minutes timeout for real network tests
 
 const userPk = process.env.USER_PRIVATE_KEY as `0x${string}`
 const resolverPk = process.env.RESOLVER_PK as `0x${string}`
@@ -59,8 +59,9 @@ describe('Resolving example', () => {
 
     let srcTimestamp: bigint
 
-    async function increaseTime(t: number): Promise<void> {
-        await Promise.all([src].map((chain) => chain.provider.send('evm_increaseTime', [t])))
+    async function sleep(seconds: number): Promise<void> {
+        console.log(`Waiting ${seconds} seconds for network finalization...`)
+        await new Promise(resolve => setTimeout(resolve, seconds * 1000))
     }
 
     beforeAll(async () => {
@@ -231,7 +232,7 @@ describe('Resolving example', () => {
             //     ESCROW_DST_IMPLEMENTATION
             // )
 
-            await increaseTime(11)
+            await sleep(15) // Wait for network finalization instead of using cheatcodes
             // User shares key after validation of dst escrow deployment
             // console.log(`[${dstChainId}]`, `Withdrawing funds for user from ${dstEscrowAddress}`)
             // await dstChainResolver.send(
@@ -385,7 +386,7 @@ describe('Resolving example', () => {
             //     ESCROW_DST_IMPLEMENTATION
             // )
 
-            await increaseTime(11) // finality lock passed
+            await sleep(15) // Wait for network finalization instead of using cheatcodes
             // User shares key after validation of dst escrow deployment
             // console.log(`[${dstChainId}]`, `Withdrawing funds for user from ${dstEscrowAddress}`)
             // await dstChainResolver.send(
@@ -538,7 +539,7 @@ describe('Resolving example', () => {
             //     ESCROW_DST_IMPLEMENTATION
             // )
 
-            await increaseTime(11) // finality lock passed
+            await sleep(15) // Wait for network finalization instead of using cheatcodes
             // User shares key after validation of dst escrow deployment
             // console.log(`[${dstChainId}]`, `Withdrawing funds for user from ${dstEscrowAddress}`)
             // await dstChainResolver.send(
@@ -680,7 +681,7 @@ describe('Resolving example', () => {
             //     ESCROW_DST_IMPLEMENTATION
             // )
 
-            await increaseTime(125)
+            await sleep(130) // Wait for cancellation timeout instead of using cheatcodes
             // user does not share secret, so cancel both escrows
             // console.log(`[${dstChainId}]`, `Cancelling dst escrow ${dstEscrowAddress}`)
             // await dstChainResolver.send(

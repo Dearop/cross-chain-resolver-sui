@@ -24,10 +24,11 @@ import {EscrowFactory} from './escrow-factory'
 import factoryContract from '../dist/contracts/TestEscrowFactory.sol/TestEscrowFactory.json'
 import resolverContract from '../dist/contracts/Resolver.sol/Resolver.json'
 import {getEthereumConfig, getSuiConfig} from './contract-addresses'
-import { createWalletClient, createPublicClient, http} from 'viem';
+import { createWalletClient, createPublicClient, http, ProviderDisconnectedError} from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
 import { sepolia } from 'viem/chains'
-import type {PublicClient} from 'viem'
+import type {PublicClient, WalletClient, Account} from 'viem'
+import{CONTRACT_ADDRESSES} from './contract-addresses'
 
 
 const {Address} = Sdk
@@ -44,7 +45,7 @@ const TEST_CONFIG = {
     }*/
 }
 
-jest.setTimeout(1000 * 60)
+jest.setTimeout(1000 * 120)
 
 const userPk = process.env.USER_PRIVATE_KEY as `0x${string}`
 const resolverPk = process.env.RESOLVER_PK as `0x${string}`
@@ -57,7 +58,7 @@ const rpcUrl = process.env.SEPOLIA_RPC_URL || 'https://g.w.lavanet.xyz:443/gatew
         
 // Create wallet client with sepolia
 const walletClient = createWalletClient({
-    account: account,
+    account,
     chain: sepolia,
     transport: http(rpcUrl)
 })
@@ -77,6 +78,7 @@ describe('Resolving example', () => {
     type Chain = {
         node?: CreateServerReturnType | undefined
         provider: PublicClient
+        wallet: ReturnType<typeof createWalletClient> // écriture + signatures
         escrowFactory: string
         resolver: string
     }
@@ -102,32 +104,38 @@ describe('Resolving example', () => {
 
     beforeAll(async () => {
         console.log('config.chain.source', config.chain.source)
-        ;[src] = await Promise.all([initChain(config.chain.source)])
+        const {provider, wallet, escrowFactory, resolver} = await initChain(config.chain.source, account, true, CONTRACT_ADDRESSES.sepolia.resolver, CONTRACT_ADDRESSES.sepolia.escrowFactory)
             //initChain(config.chain.destination)
 
-        srcChainUser = new Wallet(userPk, src.provider)
+        srcChainUser = new Wallet(userPk, resolver)
         //dstChainUser = new Wallet(userPk, dst.provider)
-        srcChainResolver = new Wallet(resolverPk, src.provider)
-        //dstChainResolver = new Wallet(resolverPk, dst.provider)
+        srcChainResolver = new Wallet(resolverPk, resolver)
+        //dstChainResolver = new Wallet(resolverPk, dst.provider as JsonRpcProvider)*/
 
-        srcFactory = new EscrowFactory(src.provider, src.escrowFactory)
+        srcFactory = new EscrowFactory(resolver, escrowFactory)
         //dstFactory = new EscrowFactory(dst.provider, dst.escrowFactory)
         // get 1000 USDC for user in SRC chain and approve to LOP
-        console.log('srcChainUser', srcChainUser.getAddress)
+        //console.log('srcChainUser', srcChainUser.getAddress)
+
+        console.log('DONE WITH CREATIONS ?')
+
         await srcChainUser.approveToken(
             config.chain.source.tokens.USDC.address,
             config.chain.source.limitOrderProtocol,
             MaxUint256
         )
 
+        console.log('DONE WITH approvetoken ????')
+
         // get 2000 USDC for resolver in DST chain
-        srcResolverContract = await Wallet.fromAddress(src.resolver, src.provider)
+        srcResolverContract = await Wallet.fromAddress(resolver, provider)
         //dstResolverContract = await Wallet.fromAddress(dst.resolver, dst.provider)
         // top up contract for approve
         //await dstChainResolver.transfer(dst.resolver, parseEther('1'))
         //await dstResolverContract.unlimitedApprove(config.chain.destination.tokens.USDC.address, dst.escrowFactory)
 
-        srcTimestamp = BigInt((await src.provider.getBlock('latest'))!.timestamp)
+        srcTimestamp = BigInt((await provider.getBlock('latest'))!.timestamp)
+        console.log('DONE WITH BEFORE ALL ???')
     })
 
     async function getBalances(
@@ -731,27 +739,37 @@ describe('Resolving example', () => {
 })
 
 async function initChain(
-    cnf: ChainConfig
-): Promise<{node?: CreateServerReturnType; provider: any; escrowFactory: string; resolver: string}> {
+    cnf: ChainConfig, account: Account, prefill?: boolean, resolver_f?: string, escrowFactory_f?: string
+): Promise<{node?: CreateServerReturnType; provider: any; wallet: any; escrowFactory: string; resolver: string}> {
     console.log('initChain', cnf)
     const {node, provider} = await getProvider(cnf)
     console.log('provider', provider)
     console.log('node', node)
-    const deployer = new SignerWallet(cnf.ownerPrivateKey, provider)
+    //const deployer = new SignerWallet(cnf.ownerPrivateKey, provider)
 
     // deploy EscrowFactory
+
+    const [deployerAddress] = await walletClient.getAddresses()
+
+    if (prefill) {
+        escrowFactory_f = escrowFactory_f||''
+        resolver_f = resolver_f||''
+        console.log('initchain prefill return', prefill, resolver_f, escrowFactory_f)
+        return {provider, wallet: walletClient, escrowFactory: escrowFactory_f, resolver: resolver_f}
+    }
+
     const escrowFactory = await deploy(
         factoryContract,
         [
             cnf.limitOrderProtocol,
             cnf.wrappedNative, // feeToken,
             Address.fromBigInt(0n).toString(), // accessToken,
-            deployer.address, // owner
-            60 * 30, // src rescue delay
-            60 * 30 // dst rescue delay
+            deployerAddress, // owner
+            60n * 30n  , // src rescue delay
+            60n * 30n // dst rescue delay
         ],
         provider,
-        deployer
+        account
     )
     console.log(`[${cnf.chainId}]`, `Escrow factory contract deployed to`, escrowFactory)
 
@@ -764,14 +782,14 @@ async function initChain(
             computeAddress(resolverPk) // resolver as owner of contract
         ],
         provider,
-        deployer
+        account
     )
     console.log(`[${cnf.chainId}]`, `Resolver contract deployed to`, resolver)
 
-    return {node: node, provider, resolver, escrowFactory}
+    return {provider, resolver, escrowFactory, wallet: walletClient}
 }
 
-async function getProvider(cnf: ChainConfig): Promise<{node?: CreateServerReturnType; provider: PublicClient}> {
+async function getProvider(cnf: ChainConfig): Promise<{node?: CreateServerReturnType; provider: any}> {
     console.log('cnf', cnf)
     console.log('TEST WTF cnf.createFork', cnf.createFork)
     console.log('TYPE FORK', typeof cnf.createFork)
@@ -826,12 +844,24 @@ async function deploy(
     json: {abi: any; bytecode: any},
     params: unknown[],
     provider: PublicClient,
-    deployer: SignerWallet
+    account: Account
 ): Promise<string> {
-    const deployed = await new ContractFactory(json.abi, json.bytecode, deployer).deploy(...params)
-    await deployed.waitForDeployment()
-
-    return await deployed.getAddress()
+    console.log('deploy params', params)
+    //console.log('deploy json bytecode', json.bytecode)
+    console.log('deploy provider', provider)
+    console.log('deploy account', account)
+    const hash = await walletClient.deployContract({
+        abi: json.abi,
+        account: account,
+        bytecode: json.bytecode.object,
+        args: params                // paramètres du constructeur
+      })
+    
+      // 2. Attente du receipt
+      const receipt = await provider.waitForTransactionReceipt({ hash })
+    
+      // 3. Retourne l’adresse du contrat fraîchement déployé
+      return receipt.contractAddress as `0x${string}`
 }
 
 function stringToBoolean(str: string): boolean {

@@ -1,21 +1,22 @@
 import {AbiCoder, Contract, JsonRpcProvider, Signer, TransactionRequest, Wallet as PKWallet} from 'ethers'
 import Sdk from '@1inch/cross-chain-sdk'
 import ERC20 from '../dist/contracts/IERC20.sol/IERC20.json'
+import {WalletClient} from 'viem'
 
 const coder = AbiCoder.defaultAbiCoder()
 
 export class Wallet {
-    public provider: JsonRpcProvider
+    public provider: any
 
-    public signer: Signer
+    public signer: WalletClient
 
-    constructor(privateKeyOrSigner: string | Signer, provider: JsonRpcProvider) {
+    constructor(privateKeyOrSigner: string | Signer, provider: any) {
         this.provider = provider
         this.signer =
             typeof privateKeyOrSigner === 'string'
                 ? new PKWallet(privateKeyOrSigner, this.provider)
                 : privateKeyOrSigner
-        console.log('signer', this.signer.address)
+        //console.log('signer', this.signer.address)
     }
 
     public static async fromAddress(address: string, provider: JsonRpcProvider): Promise<Wallet> {
@@ -79,6 +80,8 @@ export class Wallet {
             to: token.toString(),
             data: '0x095ea7b3' + coder.encode(['address', 'uint256'], [spender.toString(), amount]).slice(2)
         })
+
+        console.log('DONE WITH sendtx ????')
 
         await tx.wait()
     }

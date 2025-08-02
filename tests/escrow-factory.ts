@@ -6,7 +6,7 @@ export class EscrowFactory {
     private iface = new Interface(EscrowFactoryContract.abi)
 
     constructor(
-        private readonly provider: JsonRpcProvider,
+        private readonly provider: any,
         private readonly address: string
     ) {}
 

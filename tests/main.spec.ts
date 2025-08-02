@@ -1,8 +1,7 @@
 import 'dotenv/config'
-import {expect, jest} from '@jest/globals'
+import {expect, jest, describe, it, beforeAll, afterAll} from '@jest/globals'
 
-import {createServer, CreateServerReturnType} from 'prool'
-import {anvil} from 'prool/instances'
+
 
 import Sdk from '@1inch/cross-chain-sdk'
 import {
@@ -21,6 +20,7 @@ import {ChainConfig, config} from './config'
 import {Wallet} from './wallet'
 import {Resolver} from './resolver'
 import {EscrowFactory} from './escrow-factory'
+import {createEthersProvider} from './ethers'
 import factoryContract from '../dist/contracts/TestEscrowFactory.sol/TestEscrowFactory.json'
 import resolverContract from '../dist/contracts/Resolver.sol/Resolver.json'
 
@@ -37,7 +37,7 @@ describe('Resolving example', () => {
     //ChainId = config.chain.destination.chainId
 
     type Chain = {
-        node?: CreateServerReturnType | undefined
+        // node?: CreateServerReturnType | undefined
         provider: JsonRpcProvider
         escrowFactory: string
         resolver: string
@@ -55,6 +55,7 @@ describe('Resolving example', () => {
     let dstFactory: EscrowFactory
     let srcResolverContract: Wallet
     let dstResolverContract: Wallet
+    let srcResolverContractAddress : string;
 
     let srcTimestamp: bigint
 
@@ -82,7 +83,8 @@ describe('Resolving example', () => {
         )
 
         // get 2000 USDC for resolver in DST chain
-        srcResolverContract = await Wallet.fromAddress(src.resolver, src.provider)
+        // srcResolverContract = await Wallet.fromAddress(src.resolver, src.provider)
+        // console.log('srcResolverContract', srcResolverContract.getAddress())
         //dstResolverContract = await Wallet.fromAddress(dst.resolver, dst.provider)
         // top up contract for approve
         //await dstChainResolver.transfer(dst.resolver, parseEther('1'))
@@ -97,8 +99,8 @@ describe('Resolving example', () => {
     ): Promise<{src: {user: bigint; resolver: bigint}}> {
         return {
             src: {
-                user: await srcChainUser.tokenBalance(srcToken),
-                resolver: await srcResolverContract.tokenBalance(srcToken)
+                user: await Wallet.tokenBalance(srcChainUser.viemPublicClient, await srcChainUser.getAddress(), srcToken),
+                resolver: await Wallet.tokenBalance(srcChainUser.viemPublicClient, config.chain.source.resolver, srcToken)
             },
             //dst: {
                 //user: await dstChainUser.tokenBalance(dstToken),
@@ -110,7 +112,7 @@ describe('Resolving example', () => {
     afterAll(async () => {
         src.provider.destroy()
         //dst.provider.destroy()
-        await Promise.all([src.node?.stop()])//dst.node?.stop()
+        // No cleanup needed for direct RPC connections
     })
 
     // eslint-disable-next-line max-lines-per-function
@@ -172,7 +174,9 @@ describe('Resolving example', () => {
             )
 
             const signature = await srcChainUser.signOrder(srcChainId, order)
+            console.log('signature ', signature , 'for orrder ', order)
             const orderHash = order.getOrderHash(srcChainId)
+            console.log('orderHash ', orderHash , 'for order ' , order)
             // Resolver fills order
             const resolverContract = new Resolver(config.chain.source.resolver, config.chain.source.resolver)
 
@@ -693,69 +697,26 @@ describe('Resolving example', () => {
 
 async function initChain(
     cnf: ChainConfig
-): Promise<{node?: CreateServerReturnType; provider: JsonRpcProvider; escrowFactory: string; resolver: string}> {
-    const {node, provider} = await getProvider(cnf)
-    const deployer = new SignerWallet(cnf.ownerPrivateKey, provider)
+): Promise<{provider: JsonRpcProvider; escrowFactory: string; resolver: string}> {
+    const {provider} = await getProvider(cnf)
 
-    // deploy EscrowFactory
-    const escrowFactory = await deploy(
-        factoryContract,
-        [
-            cnf.limitOrderProtocol,
-            cnf.wrappedNative, // feeToken,
-            Address.fromBigInt(0n).toString(), // accessToken,
-            deployer.address, // owner
-            60 * 30, // src rescue delay
-            60 * 30 // dst rescue delay
-        ],
-        provider,
-        deployer
-    )
-    console.log(`[${cnf.chainId}]`, `Escrow factory contract deployed to`, escrowFactory)
+    // Use pre-deployed contract addresses from config
+    const escrowFactory = cnf.escrowFactory
+    const resolver = cnf.resolver
 
-    // deploy Resolver contract
-    const resolver = await deploy(
-        resolverContract,
-        [
-            escrowFactory,
-            cnf.limitOrderProtocol,
-            computeAddress(resolverPk) // resolver as owner of contract
-        ],
-        provider,
-        deployer
-    )
-    console.log(`[${cnf.chainId}]`, `Resolver contract deployed to`, resolver)
+    console.log(`[${cnf.chainId}]`, `Using escrow factory contract at`, escrowFactory)
+    console.log(`[${cnf.chainId}]`, `Using resolver contract at`, resolver)
 
-    return {node: node, provider, resolver, escrowFactory}
+    return {provider, resolver, escrowFactory}
 }
 
-async function getProvider(cnf: ChainConfig): Promise<{node?: CreateServerReturnType; provider: JsonRpcProvider}> {
-    if (!cnf.createFork) {
-        return {
-            provider: new JsonRpcProvider(cnf.url, cnf.chainId, {
-                cacheTimeout: -1,
-                staticNetwork: true
-            })
-        }
-    }
-
-    const node = createServer({
-        instance: anvil({forkUrl: cnf.url, chainId: cnf.chainId}),
-        limit: 1
-    })
-    await node.start()
-
-    const address = node.address()
-    assert(address)
-
-    const provider = new JsonRpcProvider(`http://[${address.address}]:${address.port}/1`, cnf.chainId, {
-        cacheTimeout: -1,
-        staticNetwork: true
-    })
+async function getProvider(cnf: ChainConfig): Promise<{provider: JsonRpcProvider}> {
+    // Use viem-based ethers adapter instead of direct JsonRpcProvider
+    const chainName = cnf.chainId === 11155111 ? 'Sepolia' : cnf.chainId === 1 ? 'Ethereum' : 'Unknown'
+    const provider = createEthersProvider(cnf.url, cnf.chainId, chainName)
 
     return {
-        provider,
-        node
+        provider
     }
 }
 

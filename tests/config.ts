@@ -19,7 +19,7 @@ const fromEnv = ConfigSchema.parse(process.env)
 export const config = {
     chain: {
         source: {
-            chainId: Sdk.NetworkEnum.ETHEREUM,
+            chainId: 11155111, // Sepolia testnet
             url: fromEnv.SRC_CHAIN_RPC,
             createFork: process.env.SRC_CHAIN_CREATE_FORK,
             limitOrderProtocol: '0x88B25C9b2209113b9705B31fbfdd298c1f9ED9ec',

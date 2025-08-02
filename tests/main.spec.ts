@@ -78,7 +78,7 @@ describe('Resolving example', () => {
         console.log('srcChainUser', srcChainUser.getAddress)
         await srcChainUser.approveToken(
             config.chain.source.tokens.USDC.address,
-            config.chain.source.limitOrderProtocol,
+            config.chain.source.lop,
             MaxUint256
         )
 
@@ -125,6 +125,7 @@ describe('Resolving example', () => {
 
             // User creates order
             const secret = uint8ArrayToHex(randomBytes(32)) // note: use crypto secure random number in real world
+            const currentTimestamp = BigInt((await src.provider.getBlock('latest'))!.timestamp)
             const order = Sdk.CrossChainOrder.new(
                 new Address(src.escrowFactory),
                 {
@@ -156,7 +157,7 @@ describe('Resolving example', () => {
                         initialRateBump: 0,
                         points: [],
                         duration: 120n,
-                        startTime: srcTimestamp
+                        startTime: currentTimestamp
                     }),
                     whitelist: [
                         {
@@ -169,7 +170,8 @@ describe('Resolving example', () => {
                 {
                     nonce: Sdk.randBigInt(UINT_40_MAX),
                     allowPartialFills: false,
-                    allowMultipleFills: false
+                    allowMultipleFills: false,
+                    orderExpirationDelay: 3600n // 1 hour expiration delay to prevent OrderExpired error
                 }
             )
 
@@ -269,6 +271,7 @@ describe('Resolving example', () => {
             const secrets = Array.from({length: 11}).map(() => uint8ArrayToHex(randomBytes(32))) // note: use crypto secure random number in the real world
             const secretHashes = secrets.map((s) => Sdk.HashLock.hashSecret(s))
             const leaves = Sdk.HashLock.getMerkleLeaves(secrets)
+            const currentTimestamp = BigInt((await src.provider.getBlock('latest'))!.timestamp)
             const order = Sdk.CrossChainOrder.new(
                 new Address(src.escrowFactory),
                 {
@@ -300,7 +303,7 @@ describe('Resolving example', () => {
                         initialRateBump: 0,
                         points: [],
                         duration: 120n,
-                        startTime: srcTimestamp
+                        startTime: currentTimestamp
                     }),
                     whitelist: [
                         {
@@ -313,7 +316,8 @@ describe('Resolving example', () => {
                 {
                     nonce: Sdk.randBigInt(UINT_40_MAX),
                     allowPartialFills: true,
-                    allowMultipleFills: true
+                    allowMultipleFills: true,
+                    orderExpirationDelay: 3600n // 1 hour expiration delay to prevent OrderExpired error
                 }
             )
 
@@ -421,6 +425,7 @@ describe('Resolving example', () => {
             const secrets = Array.from({length: 11}).map(() => uint8ArrayToHex(randomBytes(32))) // note: use crypto secure random number in the real world
             const secretHashes = secrets.map((s) => Sdk.HashLock.hashSecret(s))
             const leaves = Sdk.HashLock.getMerkleLeaves(secrets)
+            const currentTimestamp = BigInt((await src.provider.getBlock('latest'))!.timestamp)
             const order = Sdk.CrossChainOrder.new(
                 new Address(src.escrowFactory),
                 {
@@ -452,7 +457,7 @@ describe('Resolving example', () => {
                         initialRateBump: 0,
                         points: [],
                         duration: 120n,
-                        startTime: srcTimestamp
+                        startTime: currentTimestamp
                     }),
                     whitelist: [
                         {
@@ -465,7 +470,8 @@ describe('Resolving example', () => {
                 {
                     nonce: Sdk.randBigInt(UINT_40_MAX),
                     allowPartialFills: true,
-                    allowMultipleFills: true
+                    allowMultipleFills: true,
+                    orderExpirationDelay: 3600n // 1 hour expiration delay to prevent OrderExpired error
                 }
             )
 
@@ -572,6 +578,7 @@ describe('Resolving example', () => {
 
             // User creates order
             const hashLock = Sdk.HashLock.forSingleFill(uint8ArrayToHex(randomBytes(32))) // note: use crypto secure random number in real world
+            const currentTimestamp = BigInt((await src.provider.getBlock('latest'))!.timestamp)
             const order = Sdk.CrossChainOrder.new(
                 new Address(src.escrowFactory),
                 {
@@ -603,7 +610,7 @@ describe('Resolving example', () => {
                         initialRateBump: 0,
                         points: [],
                         duration: 120n,
-                        startTime: srcTimestamp
+                        startTime: currentTimestamp
                     }),
                     whitelist: [
                         {
@@ -616,7 +623,8 @@ describe('Resolving example', () => {
                 {
                     nonce: Sdk.randBigInt(UINT_40_MAX),
                     allowPartialFills: false,
-                    allowMultipleFills: false
+                    allowMultipleFills: false,
+                    orderExpirationDelay: 3600n // 1 hour expiration delay to prevent OrderExpired error
                 }
             )
 

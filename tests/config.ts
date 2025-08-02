@@ -1,7 +1,7 @@
 import {z} from 'zod'
 import Sdk from '@1inch/cross-chain-sdk'
 import * as process from 'node:process'
-
+import {CONTRACT_ADDRESSES} from './contract-addresses'
 const bool = z
     .string()
     .transform((v) => v.toLowerCase() === 'true')
@@ -22,13 +22,13 @@ export const config = {
             chainId: Sdk.NetworkEnum.ETHEREUM,
             url: fromEnv.SRC_CHAIN_RPC,
             createFork: process.env.SRC_CHAIN_CREATE_FORK,
-            limitOrderProtocol: '0x88B25C9b2209113b9705B31fbfdd298c1f9ED9ec',
-            wrappedNative: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
-            ownerPrivateKey: '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80',
+            limitOrderProtocol: CONTRACT_ADDRESSES.sepolia.limitOrderProtocol,
+            wrappedNative: CONTRACT_ADDRESSES.sepolia.tokens.WETH.address,
+            ownerPrivateKey: process.env.USER_PRIVATE_KEY as `0x${string}`,
             tokens: {
                 USDC: {
-                    address: '0xB718FF84779B917B5955a333ae8A1ff431687A7d',
-                    donor: '0xd54F23BE482D9A58676590fCa79c8E43087f92fB'
+                    address: CONTRACT_ADDRESSES.sepolia.tokens.USDC.address,
+                    donor: process.env.USER_PRIVATE_KEY as `0x${string}`
                 }
             }
         },

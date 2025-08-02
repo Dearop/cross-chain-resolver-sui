@@ -23,13 +23,51 @@ import {Resolver} from './resolver'
 import {EscrowFactory} from './escrow-factory'
 import factoryContract from '../dist/contracts/TestEscrowFactory.sol/TestEscrowFactory.json'
 import resolverContract from '../dist/contracts/Resolver.sol/Resolver.json'
+import {getEthereumConfig, getSuiConfig} from './contract-addresses'
+import { createWalletClient, createPublicClient, http} from 'viem';
+import { privateKeyToAccount } from 'viem/accounts';
+import { sepolia } from 'viem/chains'
+import type {PublicClient} from 'viem'
+
 
 const {Address} = Sdk
+
+const TEST_CONFIG = {
+    // Ethereum Sepolia configuration
+    ethereum: getEthereumConfig('sepolia'),
+    // Sui configuration
+    sui: getSuiConfig(),
+    // API configuration
+    /*api: {
+        baseUrl: mockBackendUrl,
+        authKey: mockAuthKey
+    }*/
+}
 
 jest.setTimeout(1000 * 60)
 
 const userPk = process.env.USER_PRIVATE_KEY as `0x${string}`
 const resolverPk = process.env.RESOLVER_PK as `0x${string}`
+const privateKey = process.env.USER_PRIVATE_KEY as `0x${string}`
+
+const account = privateKeyToAccount(privateKey as `0x${string}`)
+
+// Get RPC URL from environment or use default
+const rpcUrl = process.env.SEPOLIA_RPC_URL || 'https://g.w.lavanet.xyz:443/gateway/sep1/rpc-http/d3630392db153e71701cd89c262c116e'
+        
+// Create wallet client with sepolia
+const walletClient = createWalletClient({
+    account: account,
+    chain: sepolia,
+    transport: http(rpcUrl)
+})
+
+        // Create public client
+const publicClient = createPublicClient({
+    chain: sepolia,
+    transport: http(rpcUrl)
+})
+
 
 // eslint-disable-next-line max-lines-per-function
 describe('Resolving example', () => {
@@ -38,7 +76,7 @@ describe('Resolving example', () => {
 
     type Chain = {
         node?: CreateServerReturnType | undefined
-        provider: JsonRpcProvider
+        provider: PublicClient
         escrowFactory: string
         resolver: string
     }
@@ -63,6 +101,7 @@ describe('Resolving example', () => {
     }
 
     beforeAll(async () => {
+        console.log('config.chain.source', config.chain.source)
         ;[src] = await Promise.all([initChain(config.chain.source)])
             //initChain(config.chain.destination)
 
@@ -693,8 +732,11 @@ describe('Resolving example', () => {
 
 async function initChain(
     cnf: ChainConfig
-): Promise<{node?: CreateServerReturnType; provider: JsonRpcProvider; escrowFactory: string; resolver: string}> {
+): Promise<{node?: CreateServerReturnType; provider: any; escrowFactory: string; resolver: string}> {
+    console.log('initChain', cnf)
     const {node, provider} = await getProvider(cnf)
+    console.log('provider', provider)
+    console.log('node', node)
     const deployer = new SignerWallet(cnf.ownerPrivateKey, provider)
 
     // deploy EscrowFactory
@@ -729,15 +771,33 @@ async function initChain(
     return {node: node, provider, resolver, escrowFactory}
 }
 
-async function getProvider(cnf: ChainConfig): Promise<{node?: CreateServerReturnType; provider: JsonRpcProvider}> {
-    if (!cnf.createFork) {
-        return {
-            provider: new JsonRpcProvider(cnf.url, cnf.chainId, {
-                cacheTimeout: -1,
-                staticNetwork: true
+async function getProvider(cnf: ChainConfig): Promise<{node?: CreateServerReturnType; provider: PublicClient}> {
+    console.log('cnf', cnf)
+    console.log('TEST WTF cnf.createFork', cnf.createFork)
+    console.log('TYPE FORK', typeof cnf.createFork)
+    if (!stringToBoolean(cnf.createFork || 'true')) {
+        console.log("in getprovider!", cnf.url, cnf.chainId)
+        console.log("Using direct RPC provider:", cnf.url, cnf.chainId)
+        
+        try {
+            const provider = createPublicClient({
+                chain: sepolia,
+                transport: http(cnf.url)
             })
+            console.log("Provider created:", provider)
+            
+            // Test the connection
+            const blockNumber = await provider.getBlockNumber()
+            console.log("Connected to block:", blockNumber)
+            
+            return {provider}
+        } catch (error) {
+            console.error("Failed to create provider:", error)
+            throw error
         }
     }
+
+    console.log("out getprovider!", cnf.url, cnf.chainId)
 
     const node = createServer({
         instance: anvil({forkUrl: cnf.url, chainId: cnf.chainId}),
@@ -765,11 +825,15 @@ async function getProvider(cnf: ChainConfig): Promise<{node?: CreateServerReturn
 async function deploy(
     json: {abi: any; bytecode: any},
     params: unknown[],
-    provider: JsonRpcProvider,
+    provider: PublicClient,
     deployer: SignerWallet
 ): Promise<string> {
     const deployed = await new ContractFactory(json.abi, json.bytecode, deployer).deploy(...params)
     await deployed.waitForDeployment()
 
     return await deployed.getAddress()
+}
+
+function stringToBoolean(str: string): boolean {
+    return str.toLowerCase() === 'true';
 }

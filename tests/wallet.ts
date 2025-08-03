@@ -135,6 +135,8 @@ export class Wallet {
             throw new Error('Wallet client not available')
         }
 
+        console.log(`[WALLET] Transferring ${amount} ETH from ${this.viemWalletClient.account?.address} to ${dest}`)
+        
         // Use viem for ETH transfers
         const hash = await this.viemWalletClient.sendTransaction({
             account: this.viemWalletClient.account!,
@@ -150,6 +152,8 @@ export class Wallet {
             throw new Error('Wallet client not available')
         }
 
+        console.log(`[WALLET] Transferring ${amount} tokens from ${this.viemWalletClient.account?.address} to ${dest}`)
+        
         // Use viem for better performance and type safety
         const hash = await this.viemWalletClient.writeContract({
             account: this.viemWalletClient.account!,
@@ -159,6 +163,8 @@ export class Wallet {
             args: [dest as `0x${string}`, amount],
             chain: this.chain
         })
+        
+        console.log(`[WALLET] Transfer transaction hash: ${hash}`)
         
         // Wait for transaction confirmation
         await this.viemPublicClient.waitForTransactionReceipt({ hash })

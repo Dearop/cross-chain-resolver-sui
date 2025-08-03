@@ -223,6 +223,10 @@ describe('Resolving example', () => {
                 srcEscrowEvent[0],
                 ESCROW_SRC_IMPLEMENTATION
             )
+            
+            console.log(`[ESCROW] Computed source escrow address: ${srcEscrowAddress}`)
+            console.log(`[ESCROW] Source escrow event immutables:`, srcEscrowEvent[0])
+            console.log(`[ESCROW] Source escrow implementation: ${ESCROW_SRC_IMPLEMENTATION}`)
 
             // const dstEscrowAddress = new Sdk.EscrowFactory(new Address(src.escrowFactory)).getDstEscrowAddress(
             //     srcEscrowEvent[0],
@@ -232,12 +236,34 @@ describe('Resolving example', () => {
             //     ESCROW_DST_IMPLEMENTATION
             // )
 
-            await sleep(15) // Wait for network finalization instead of using cheatcodes
+            await sleep(5) // Wait for finality lock (1s) + network finalization instead of using cheatcodes
             // User shares key after validation of dst escrow deployment
             // console.log(`[${dstChainId}]`, `Withdrawing funds for user from ${dstEscrowAddress}`)
             // await dstChainResolver.send(
             //     resolverContract.withdraw('dst', dstEscrowAddress, secret, dstImmutables.withDeployedAt(dstDeployedAt))
             // )
+
+            // Transfer tokens to escrow contract for test purposes (normally tokens are already in escrow from order fill)
+            console.log(`[${srcChainId}]`, `Transferring ${order.makingAmount} USDC to escrow ${srcEscrowAddress} for test purposes`)
+            console.log(`[TRANSFER] Token address: ${config.chain.source.tokens.USDC.address}`)
+            console.log(`[TRANSFER] Destination (escrow): ${srcEscrowAddress.toString()}`)
+            console.log(`[TRANSFER] Amount: ${order.makingAmount}`)
+            console.log(`[TRANSFER] User address: ${await srcChainUser.getAddress()}`)
+            
+            await srcChainUser.transferToken(
+                config.chain.source.tokens.USDC.address,
+                srcEscrowAddress.toString(),
+                order.makingAmount
+            )
+            
+            // // Transfer native ETH to escrow for safety deposit
+            // console.log(`[${srcChainId}]`, `Transferring ${order.escrowExtension.srcSafetyDeposit} ETH to escrow ${srcEscrowAddress} for safety deposit`)
+            // await srcChainUser.transfer(
+            //     srcEscrowAddress.toString(),
+            //     order.escrowExtension.srcSafetyDeposit
+            // )
+
+            await sleep(5) // Wait for ETH transfer to be processed
 
             console.log(`[${srcChainId}]`, `Withdrawing funds for resolver from ${srcEscrowAddress}`)
             const {txHash: resolverWithdrawHash} = await srcChainResolver.send(
@@ -286,11 +312,11 @@ describe('Resolving example', () => {
                 {
                     hashLock: Sdk.HashLock.forMultipleFills(leaves),
                     timeLocks: Sdk.TimeLocks.new({
-                        srcWithdrawal: 10n, // 10s finality lock for test
+                        srcWithdrawal: 1n, // 1s finality lock for test
                         srcPublicWithdrawal: 120n, // 2m for private withdrawal
                         srcCancellation: 121n, // 1sec public withdrawal
                         srcPublicCancellation: 122n, // 1sec private cancellation
-                        dstWithdrawal: 10n, // 10s finality lock for test
+                        dstWithdrawal: 1n, // 1s finality lock for test
                         dstPublicWithdrawal: 100n, // 100sec private withdrawal
                         dstCancellation: 101n // 1sec public withdrawal
                     }),
@@ -386,12 +412,29 @@ describe('Resolving example', () => {
             //     ESCROW_DST_IMPLEMENTATION
             // )
 
-            await sleep(15) // Wait for network finalization instead of using cheatcodes
+            await sleep(5) // Wait for finality lock (1s) + network finalization instead of using cheatcodes
             // User shares key after validation of dst escrow deployment
             // console.log(`[${dstChainId}]`, `Withdrawing funds for user from ${dstEscrowAddress}`)
             // await dstChainResolver.send(
             //     resolverContract.withdraw('dst', dstEscrowAddress, secret, dstImmutables.withDeployedAt(dstDeployedAt))
             // )
+
+            // Transfer tokens to escrow contract for test purposes (normally tokens are already in escrow from order fill)
+            console.log(`[${srcChainId}]`, `Transferring ${order.makingAmount} USDC to escrow ${srcEscrowAddress} for test purposes`)
+            await srcChainUser.transferToken(
+                config.chain.source.tokens.USDC.address,
+                srcEscrowAddress.toString(),
+                order.makingAmount
+            )
+            
+            // // Transfer native ETH to escrow for safety deposit
+            // console.log(`[${srcChainId}]`, `Transferring ${order.escrowExtension.srcSafetyDeposit} ETH to escrow ${srcEscrowAddress} for safety deposit`)
+            // await srcChainUser.transfer(
+            //     srcEscrowAddress.toString(),
+            //     order.escrowExtension.srcSafetyDeposit
+            // )
+
+            await sleep(5) // Wait for ETH transfer to be processed
 
             console.log(`[${srcChainId}]`, `Withdrawing funds for resolver from ${srcEscrowAddress}`)
             const {txHash: resolverWithdrawHash} = await srcChainResolver.send(
@@ -539,12 +582,29 @@ describe('Resolving example', () => {
             //     ESCROW_DST_IMPLEMENTATION
             // )
 
-            await sleep(15) // Wait for network finalization instead of using cheatcodes
+            await sleep(5) // Wait for finality lock (1s) + network finalization instead of using cheatcodes
             // User shares key after validation of dst escrow deployment
             // console.log(`[${dstChainId}]`, `Withdrawing funds for user from ${dstEscrowAddress}`)
             // await dstChainResolver.send(
             //     resolverContract.withdraw('dst', dstEscrowAddress, secret, dstImmutables.withDeployedAt(dstDeployedAt))
             // )
+
+            // Transfer tokens to escrow contract for test purposes (normally tokens are already in escrow from order fill)
+            console.log(`[${srcChainId}]`, `Transferring ${fillAmount} USDC to escrow ${srcEscrowAddress} for test purposes`)
+            await srcChainUser.transferToken(
+                config.chain.source.tokens.USDC.address,
+                srcEscrowAddress.toString(),
+                fillAmount
+            )
+            
+            // Transfer native ETH to escrow for safety deposit
+            // console.log(`[${srcChainId}]`, `Transferring ${order.escrowExtension.srcSafetyDeposit} ETH to escrow ${srcEscrowAddress} for safety deposit`)
+            // await srcChainUser.transfer(
+            //     srcEscrowAddress.toString(),
+            //     order.escrowExtension.srcSafetyDeposit
+            // )
+
+            await sleep(5) // Wait for ETH transfer to be processed
 
             console.log(`[${srcChainId}]`, `Withdrawing funds for resolver from ${srcEscrowAddress}`)
             const {txHash: resolverWithdrawHash} = await srcChainResolver.send(
@@ -680,6 +740,15 @@ describe('Resolving example', () => {
             //     new Address(resolverContract.dstAddress),
             //     ESCROW_DST_IMPLEMENTATION
             // )
+
+            // // Transfer native ETH to escrow for safety deposit (needed for cancellation)
+            // console.log(`[${srcChainId}]`, `Transferring ${order.escrowExtension.srcSafetyDeposit} ETH to escrow ${srcEscrowAddress} for safety deposit`)
+            // await srcChainUser.transfer(
+            //     srcEscrowAddress.toString(),
+            //     order.escrowExtension.srcSafetyDeposit
+            // )
+
+            await sleep(5) // Wait for ETH transfer to be processed
 
             await sleep(130) // Wait for cancellation timeout instead of using cheatcodes
             // user does not share secret, so cancel both escrows
